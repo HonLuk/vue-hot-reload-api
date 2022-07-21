@@ -1,15 +1,15 @@
-let Vue // late bind
-let version
-const map = Object.create(null)
+var Vue // late bind
+var version
+var map = Object.create(null)
 if (typeof window !== 'undefined') {
   window.__VUE_HOT_MAP__ = map
 }
-let installed = false
-let isBrowserify = false
-let initHookName = 'beforeCreate'
+var installed = false
+var isBrowserify = false
+var initHookName = 'beforeCreate'
 
-exports.install = (vue, browserify) => {
-  if (installed) return
+exports.install = function (vue, browserify) {
+  if (installed) { return }
   installed = true
 
   Vue = vue.__esModule || vue.default ? vue.default : vue;
@@ -39,18 +39,18 @@ exports.install = (vue, browserify) => {
  * @param {Object} options
  */
 
-exports.createRecord = (id, options) => {
-  if(map[id]) return
+exports.createRecord = function (id, options) {
+  if(map[id]) { return }
 
-  let Ctor = null
+  var Ctor = null
   if (typeof options === 'function') {
     Ctor = options
     options = Ctor.options
   }
   makeOptionsHot(id, options)
   map[id] = {
-    Ctor,
-    options,
+    Ctor: Ctor,
+    options: options,
     instances: []
   }
 }
@@ -61,7 +61,7 @@ exports.createRecord = (id, options) => {
  * @param {String} id
  */
 
-exports.isRecorded = (id) => {
+exports.isRecorded = function (id) {
   return typeof map[id] !== 'undefined'
 }
 
@@ -74,9 +74,9 @@ exports.isRecorded = (id) => {
 
 function makeOptionsHot(id, options) {
   if (options.functional) {
-    const render = options.render
-    options.render = (h, ctx) => {
-      const instances = map[id].instances
+    var render = options.render
+    options.render = function (h, ctx) {
+      var instances = map[id].instances
       if (ctx && instances.indexOf(ctx.parent) < 0) {
         instances.push(ctx.parent)
       }
@@ -84,14 +84,14 @@ function makeOptionsHot(id, options) {
     }
   } else {
     injectHook(options, initHookName, function() {
-      const record = map[id]
+      var record = map[id]
       if (!record.Ctor) {
         record.Ctor = this.constructor
       }
       record.instances.push(this)
     })
     injectHook(options, 'beforeDestroy', function() {
-      const instances = map[id].instances
+      var instances = map[id].instances
       instances.splice(instances.indexOf(this), 1)
     })
   }
@@ -107,14 +107,14 @@ function makeOptionsHot(id, options) {
  */
 
 function injectHook(options, name, hook) {
-  const existing = options[name]
+  var existing = options[name]
   options[name] = existing
     ? Array.isArray(existing) ? existing.concat(hook) : [existing, hook]
     : [hook]
 }
 
 function tryWrap(fn) {
-  return (id, arg) => {
+  return function (id, arg) {
     try {
       fn(id, arg)
     } catch (e) {
@@ -127,20 +127,20 @@ function tryWrap(fn) {
 }
 
 function updateOptions (oldOptions, newOptions) {
-  for (const key in oldOptions) {
+  for (var key in oldOptions) {
     if (!(key in newOptions)) {
       delete oldOptions[key]
     }
   }
-  for (const key in newOptions) {
-    oldOptions[key] = newOptions[key]
+  for (var key$1 in newOptions) {
+    oldOptions[key$1] = newOptions[key$1]
   }
 }
 
-exports.rerender = tryWrap((id, options) => {
-  const record = map[id]
+exports.rerender = tryWrap(function (id, options) {
+  var record = map[id]
   if (!options) {
-    record.instances.slice().forEach(instance => {
+    record.instances.slice().forEach(function (instance) {
       instance.$forceUpdate()
     })
     return
@@ -151,7 +151,7 @@ exports.rerender = tryWrap((id, options) => {
   if (record.Ctor) {
     record.Ctor.options.render = options.render
     record.Ctor.options.staticRenderFns = options.staticRenderFns
-    record.instances.slice().forEach(instance => {
+    record.instances.slice().forEach(function (instance) {
       instance.$options.render = options.render
       instance.$options.staticRenderFns = options.staticRenderFns
       // reset static trees
@@ -174,7 +174,7 @@ exports.rerender = tryWrap((id, options) => {
 
       // 2.6: temporarily mark rendered scoped slots as unstable so that
       // child components can be forced to update
-      const restore = patchScopedSlots(instance)
+      var restore = patchScopedSlots(instance)
       instance.$forceUpdate()
       instance.$nextTick(restore)
     })
@@ -192,10 +192,10 @@ exports.rerender = tryWrap((id, options) => {
         // template-only rerender.
         // need to inject the style injection code for CSS modules
         // to work properly.
-        const injectStyles = record.options._injectStyles
+        var injectStyles = record.options._injectStyles
         if (injectStyles) {
-          const render = options.render
-          record.options.render = (h, ctx) => {
+          var render = options.render
+          record.options.render = function (h, ctx) {
             injectStyles.call(ctx)
             return render(h, ctx)
           }
@@ -206,15 +206,15 @@ exports.rerender = tryWrap((id, options) => {
       if (Array.isArray(record.options.cached)) {
         record.options.cached = []
       }
-      record.instances.slice().forEach(instance => {
+      record.instances.slice().forEach(function (instance) {
         instance.$forceUpdate()
       })
     }
   }
 })
 
-exports.reload = tryWrap((id, options) => {
-  const record = map[id]
+exports.reload = tryWrap(function (id, options) {
+  var record = map[id]
   if (options) {
     if (typeof options === 'function') {
       options = options.options
@@ -225,7 +225,7 @@ exports.reload = tryWrap((id, options) => {
         // preserve pre 2.2 behavior for global mixin handling
         record.Ctor.extendOptions = options
       }
-      const newCtor = record.Ctor.super.extend(options)
+      var newCtor = record.Ctor.super.extend(options)
       // prevent record.options._Ctor from being overwritten accidentally
       newCtor.options._Ctor = record.options._Ctor
       record.Ctor.options = newCtor.options
@@ -239,7 +239,7 @@ exports.reload = tryWrap((id, options) => {
       updateOptions(record.options, options)
     }
   }
-  record.instances.slice().forEach(instance => {
+  record.instances.slice().forEach(function (instance) {
     if (instance.$vnode && instance.$vnode.context) {
       instance.$vnode.context.$forceUpdate()
     } else {
@@ -255,10 +255,10 @@ exports.reload = tryWrap((id, options) => {
 // to temporarily mark all scoped slots as unstable in order to force child
 // updates.
 function patchScopedSlots (instance) {
-  if (!instance._u) return
+  if (!instance._u) { return }
   // https://github.com/vuejs/vue/blob/dev/src/core/instance/render-helpers/resolve-scoped-slots.js
-  const original = instance._u
-  instance._u = slots => {
+  var original = instance._u
+  instance._u = function (slots) {
     try {
       // 2.6.4 ~ 2.6.6
       return original(slots, true)
@@ -267,7 +267,7 @@ function patchScopedSlots (instance) {
       return original(slots, null, true)
     }
   }
-  return () => {
+  return function () {
     instance._u = original
   }
 }
